@@ -36,10 +36,10 @@ public class MasterImpl implements Master, Serializable {
 		rmiRegistry.start();
 		try { Thread.sleep(1000); } catch (InterruptedException e) {}
 		try {
-            Master stub = (Master) UnicastRemoteObject.exportObject(this, 0);
-            Registry registry = LocateRegistry.getRegistry();
-            registry.rebind(Main.RMI_NAME, stub);
-            processor.start();
+			Master stub = (Master) UnicastRemoteObject.exportObject(this, 0);
+			Registry registry = LocateRegistry.getRegistry();
+			registry.rebind(Main.RMI_NAME, stub);
+			processor.start();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 			System.exit(1);
