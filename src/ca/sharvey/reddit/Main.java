@@ -8,6 +8,7 @@ import ca.sharvey.reddit.control.Slave;
 public class Main {
 	
 	public static final String RMI_NAME = "RedditCrawler";
+	public static final String BASE_SITE = "http://www.reddit.com";
 
 	public static void main(String[] args) throws RemoteException {
 		if (args.length < 1) {

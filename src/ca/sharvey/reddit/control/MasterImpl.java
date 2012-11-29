@@ -72,31 +72,36 @@ public class MasterImpl implements Master, Serializable {
 	public synchronized Task getTask(String host, Type type) throws RemoteException {
 		switch (type) {
 		case CRAWL:
-			return crawlTaskList.poll();
+			synchronized (crawlTaskList) { return crawlTaskList.poll(); }
 		case PROCESS:
-			return processTaskList.poll();
+			synchronized (processTaskList) { return processTaskList.poll(); }
 		default:
 			return null;
 		}
 	}
 
 	@Override
-	public synchronized void updateResult(String host, Type type, Result result)
+	public void updateResult(String host, Type type, Result result)
 			throws RemoteException {
 		switch (type) {
 		case CRAWL:
-			crawlResultList.add(result);
+			synchronized (crawlResultList) { crawlResultList.add(result); }
 			break;
 		case PROCESS:
-			processResultList.add(result);
+			synchronized (processResultList) { processResultList.add(result); }
 			break;
 		default:
 			break;
 		}
 	}
+	
+	private void init() {
+		
+	}
 
 	private Thread processor = new Thread() {
 		public void run() {
+			init();
 			while (!isInterrupted()) {
 				try {
 					sleep(1000);
