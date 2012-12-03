@@ -11,7 +11,7 @@ import org.json.JSONObject;
 
 import ca.sharvey.reddit.Main;
 
-public class CommentCrawler extends Crawl {
+public class CommentCrawler extends Crawler {
 
 	private static final long serialVersionUID = 8842559019162126555L;
 	private static final String[] KEYS_STR = { "id", "name", "body", "body_html", "parent_id", "link_id", "author", "subreddit", "subreddit_id" };

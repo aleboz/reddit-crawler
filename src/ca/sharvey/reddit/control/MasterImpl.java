@@ -9,7 +9,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import ca.sharvey.reddit.Main;
 import ca.sharvey.reddit.task.Result;
@@ -22,10 +22,10 @@ public class MasterImpl implements Master, Serializable {
 	public static final int DEFAULT_PORT = 1099;
 
 	private HashMap<String, Integer> hostList = new HashMap<String, Integer>();
-	private LinkedBlockingQueue<Task> crawlTaskList = new LinkedBlockingQueue<Task>();
-	private LinkedBlockingQueue<Task> processTaskList = new LinkedBlockingQueue<Task>();
-	private LinkedBlockingQueue<Result> crawlResultList = new LinkedBlockingQueue<Result>();
-	private LinkedBlockingQueue<Result> processResultList = new LinkedBlockingQueue<Result>();
+	private ConcurrentLinkedQueue<Task> crawlTaskList = new ConcurrentLinkedQueue<Task>();
+	private ConcurrentLinkedQueue<Task> processTaskList = new ConcurrentLinkedQueue<Task>();
+	private ConcurrentLinkedQueue<Result> crawlResultList = new ConcurrentLinkedQueue<Result>();
+	private ConcurrentLinkedQueue<Result> processResultList = new ConcurrentLinkedQueue<Result>();
 
 	public MasterImpl() throws RemoteException {
 		super();
@@ -68,7 +68,7 @@ public class MasterImpl implements Master, Serializable {
 	}
 
 	@Override
-	public synchronized Task getTask(String host, Type type) throws RemoteException {
+	public Task getTask(String host, Type type) throws RemoteException {
 		switch (type) {
 		case CRAWL:
 			synchronized (crawlTaskList) { return crawlTaskList.poll(); }

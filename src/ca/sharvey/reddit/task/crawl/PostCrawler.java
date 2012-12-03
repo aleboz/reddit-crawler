@@ -10,7 +10,7 @@ import org.json.JSONObject;
 
 import ca.sharvey.reddit.Main;
 
-public class PostCrawler extends Crawl {
+public class PostCrawler extends Crawler {
 
 	private static final long serialVersionUID = 1585328031012008706L;
 	private String id;

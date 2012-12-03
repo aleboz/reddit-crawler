@@ -17,9 +17,9 @@ import ca.sharvey.reddit.task.Result;
 import ca.sharvey.reddit.task.Task;
 import ca.sharvey.reddit.task.Type;
 
-public abstract class Crawl extends Task {
+public abstract class Crawler extends Task {
 
-	public Crawl() {
+	public Crawler() {
 		super(Type.CRAWL);
 	}
 
