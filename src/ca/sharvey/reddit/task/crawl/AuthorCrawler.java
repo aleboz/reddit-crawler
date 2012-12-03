@@ -4,9 +4,9 @@ import ca.sharvey.reddit.task.Result;
 import ca.sharvey.reddit.task.Task;
 import ca.sharvey.reddit.task.Type;
 
-public class Author extends Task {
+public class AuthorCrawler extends Task {
 
-	public Author() {
+	public AuthorCrawler() {
 		super(Type.CRAWL);
 	}
 	

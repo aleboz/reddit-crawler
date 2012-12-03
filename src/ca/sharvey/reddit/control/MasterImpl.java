@@ -28,7 +28,6 @@ public class MasterImpl implements Master, Serializable {
 	private LinkedBlockingQueue<Result> processResultList = new LinkedBlockingQueue<Result>();
 
 	public MasterImpl() throws RemoteException {
-		//super(DEFAULT_PORT);
 		super();
 	}
 

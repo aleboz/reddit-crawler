@@ -1,5 +1,5 @@
 package ca.sharvey.reddit.task.crawl;
 
-public class Subreddit {
+public class SubredditCrawler {
 
 }
