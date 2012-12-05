@@ -10,6 +10,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import ca.sharvey.reddit.Main;
+import ca.sharvey.reddit.task.Type;
 
 public class CommentCrawler extends Crawler {
 
@@ -17,16 +18,17 @@ public class CommentCrawler extends Crawler {
 	private static final String[] KEYS_STR = { "id", "name", "body", "body_html", "parent_id", "link_id", "author", "subreddit", "subreddit_id" };
 	private static final String[] KEYS_INT = { "created_utc", "ups", "downs" };
 
-	private String id;
 	private String start;
 
 	public CommentCrawler(String id) {
 		this.id = id;
+		setType(Type.CRAWL_COMMENT);
 	}
 
 	public CommentCrawler(String id, String start) {
 		this.id = id;
 		this.start = start;
+		setType(Type.CRAWL_COMMENT);
 	}
 
 	@Override

@@ -9,16 +9,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import ca.sharvey.reddit.Main;
+import ca.sharvey.reddit.task.Type;
 
 public class PostCrawler extends Crawler {
 
 	private static final long serialVersionUID = 1585328031012008706L;
-	private String id;
 	private static final String[] KEYS_STR = { "id", "name", "selftext", "selftext_html", "url", "title", "author", "subreddit", "subreddit_id" };
 	private static final String[] KEYS_INT = { "created_utc", "ups", "downs" };
 
 	public PostCrawler(String id) {
 		this.id = id;
+		setType(Type.CRAWL_POST);
 	}
 	
 	@Override

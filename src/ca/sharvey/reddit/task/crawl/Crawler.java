@@ -98,7 +98,7 @@ public abstract class Crawler extends Task {
 	public Result execute() {
 		String content = downloadURL();
 		HashMap<String, Properties> data = processData(content);
-		return new Result(getType(), data);
+		return new Result(getType(), this, data);
 	}
 
 }

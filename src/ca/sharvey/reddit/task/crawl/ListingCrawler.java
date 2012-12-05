@@ -7,21 +7,24 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import ca.sharvey.reddit.task.Type;
+
 public abstract class ListingCrawler extends Crawler {
 
 	private static final long serialVersionUID = 1585328031012008706L;
-	String id;
 	String after;
 	int count;
 	
 	public ListingCrawler(String id) {
 		this.id = id;
+		setType(Type.CRAWL_LISTING);
 	}
 	
 	public ListingCrawler(String id, String after, int count) {
 		this.id = id;
 		this.after = after;
 		this.count = count;
+		setType(Type.CRAWL_LISTING);
 	}
 
 	@Override

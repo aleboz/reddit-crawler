@@ -17,7 +17,7 @@ public class Test {
 		//AuthorCrawler ac = new AuthorCrawler("worldwise001");
 		//Result r = ac.execute();
 
-		SubredditCrawler sc = new SubredditCrawler("uwaterloo");
+		SubredditCrawler sc = new SubredditCrawler("uwaterloo", "t3_13ucru", 25);
 		Result r = sc.execute();
 		
 		HashMap<String, Properties> data = r.getData();

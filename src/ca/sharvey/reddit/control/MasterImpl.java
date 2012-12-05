@@ -8,13 +8,16 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import ca.sharvey.reddit.Main;
+import ca.sharvey.reddit.task.Processor;
 import ca.sharvey.reddit.task.Result;
 import ca.sharvey.reddit.task.Task;
 import ca.sharvey.reddit.task.Type;
+import ca.sharvey.reddit.task.crawl.SubredditCrawler;
 
 public class MasterImpl implements Master, Serializable {
 
@@ -69,14 +72,21 @@ public class MasterImpl implements Master, Serializable {
 
 	@Override
 	public Task getTask(String host, Type type) throws RemoteException {
+		Task t = null;
 		switch (type) {
 		case CRAWL:
-			synchronized (crawlTaskList) { return crawlTaskList.poll(); }
+			synchronized (crawlTaskList) { t = crawlTaskList.poll(); } break;
 		case PROCESS:
-			synchronized (processTaskList) { return processTaskList.poll(); }
+			synchronized (processTaskList) { t = processTaskList.poll(); } break;
 		default:
 			return null;
 		}
+
+		if (t != null)
+			System.out.println("Sending task "+t.getUID()+" to "+host);
+		else
+			System.out.println("Polling for no tasks");
+		return t;
 	}
 
 	@Override
@@ -93,19 +103,30 @@ public class MasterImpl implements Master, Serializable {
 			break;
 		}
 	}
-	
+
 	private void init() {
-		
+		SubredditCrawler initialTask = new SubredditCrawler("all");
+		crawlTaskList.add(initialTask);
 	}
 
 	private Thread processor = new Thread() {
 		public void run() {
+			Processor.initSQL();
 			init();
 			while (!isInterrupted()) {
-				try {
-					sleep(1000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+				Result result = crawlResultList.poll();
+				if (result == null)
+					try { sleep(1000); } catch (InterruptedException e) {}
+				else {
+					switch (result.getTask().getType()) {
+					case CRAWL_POST: Processor.processPostResult(result); break;
+					case CRAWL_COMMENT: Processor.processCommentResult(result); break;
+					case CRAWL_LISTING:
+						ArrayList<Task> tasks = Processor.processListingResult(result);
+						synchronized (crawlTaskList) { crawlTaskList.addAll(tasks); }
+						break;
+					default: break;
+					}
 				}
 			}
 		}
