@@ -6,7 +6,7 @@ distributed reddit crawler
 Licenses and attributions
 -------------------------
 
-All source code ca.uwaterloo.sharvey.* is copyrighted via MIT License (see LICENSE).
+All source code ca.uwaterloo.sharvey.* is licensed under the MIT License (see LICENSE).
 
 All source code org.json.* is licensed under the JSON license (http://www.json.org/license.html)
 
