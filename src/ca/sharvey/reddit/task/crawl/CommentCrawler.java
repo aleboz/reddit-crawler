@@ -50,7 +50,7 @@ public class CommentCrawler extends Crawler {
 				}
 
 				for (String k : KEYS_INT) {
-					properties.setProperty(k, data.getInt(k)+" ");
+					properties.setProperty(k, data.getInt(k)+"");
 				}
 				return properties;
 			} else {

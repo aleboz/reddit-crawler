@@ -33,7 +33,7 @@ public class PostCrawler extends Crawler {
 			HashMap<String, Properties> data = new HashMap<String, Properties>();
 			JSONObject obj = new JSONObject(content);
 			JSONObject o1 = obj.getJSONObject("data").getJSONArray("children").getJSONObject(0).getJSONObject("data");
-			String type = obj.getJSONObject("data").getJSONArray("children").getJSONObject(0).getString("type");
+			String type = obj.getJSONObject("data").getJSONArray("children").getJSONObject(0).getString("kind");
 			
 			Properties properties = new Properties();
 			
@@ -42,7 +42,7 @@ public class PostCrawler extends Crawler {
 			}
 			
 			for (String k : KEYS_INT) {
-				properties.setProperty(k, o1.getInt(k)+" ");
+				properties.setProperty(k, o1.getInt(k)+"");
 			}
 			
 			properties.setProperty("kind", type);

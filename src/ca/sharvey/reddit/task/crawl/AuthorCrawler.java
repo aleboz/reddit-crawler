@@ -4,6 +4,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import ca.sharvey.reddit.Main;
+import ca.sharvey.reddit.task.Type;
 
 
 public class AuthorCrawler extends ListingCrawler {
@@ -12,10 +13,12 @@ public class AuthorCrawler extends ListingCrawler {
 
 	public AuthorCrawler(String id) {
 		super(id);
+		setType(Type.CRAWL_AUTHOR);
 	}
 	
 	public AuthorCrawler(String id, String after, int count) {
 		super(id, after, count);
+		setType(Type.CRAWL_AUTHOR);
 	}
 
 	@Override
