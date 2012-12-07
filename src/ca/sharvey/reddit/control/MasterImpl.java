@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import ca.sharvey.reddit.Main;
+import ca.sharvey.reddit.sql.SQL;
 import ca.sharvey.reddit.task.Processor;
 import ca.sharvey.reddit.task.Result;
 import ca.sharvey.reddit.task.Task;
@@ -111,7 +112,7 @@ public class MasterImpl implements Master, Serializable {
 
 	private Thread processor = new Thread() {
 		public void run() {
-			Processor.initSQL();
+			SQL.getInstance().init();
 			init();
 			while (!isInterrupted()) {
 				Result result = crawlResultList.poll();
