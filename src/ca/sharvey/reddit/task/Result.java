@@ -40,7 +40,6 @@ public class Result implements Serializable, Comparable<Object> {
 		this.task = task;
 	}
 	
-	@Override
 	public int compareTo(Object o) {
 		if (!(o instanceof Result)) return 1;
 		Result r = (Result)o;

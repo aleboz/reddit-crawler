@@ -43,6 +43,7 @@ public class SQL {
 		db_r = openSQLConnection(DB_R);
 		
 		Statement stmt = null;
+		PreparedStatement pstmt = null;
 		
 		try {
 			stmt = db_a.createStatement();
@@ -59,6 +60,28 @@ public class SQL {
 			stmt.executeUpdate("CREATE TABLE IF NOT EXISTS key_author "+SQLS_AUTHORKEY_CREATE_COLS);
 			stmt.executeUpdate("CREATE TABLE IF NOT EXISTS key_subreddit "+SQLS_SUBREDDITKEY_CREATE_COLS);
 			stmt.close();
+			
+			pstmt = db_a.prepareStatement("INSERT OR REPLACE INTO key_author (id,name,created_utc) VALUES(?,?,?)");
+			pstmt.setString(1, "[deleted]");
+			pstmt.setString(2, "[deleted]");
+			pstmt.setLong(3,0);
+			pstmt.execute();
+			pstmt.close();
+			
+			pstmt = db_u.prepareStatement("INSERT OR REPLACE INTO key_author (id,name,created_utc) VALUES(?,?,?)");
+			pstmt.setString(1, "[deleted]");
+			pstmt.setString(2, "[deleted]");
+			pstmt.setLong(3,0);
+			pstmt.execute();
+			pstmt.close();
+
+			pstmt = db_r.prepareStatement("INSERT OR REPLACE INTO key_author (id,name,created_utc) VALUES(?,?,?)");
+			pstmt.setString(1, "[deleted]");
+			pstmt.setString(2, "[deleted]");
+			pstmt.setLong(3,0);
+			pstmt.execute();
+			pstmt.close();
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

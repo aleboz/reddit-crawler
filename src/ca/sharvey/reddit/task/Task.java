@@ -36,7 +36,6 @@ public abstract class Task implements Serializable, Comparable<Object> {
 		return id;
 	}
 	
-	@Override
 	public int compareTo(Object o) {
 		if (!(o instanceof Task)) return 1;
 		Task t = (Task)o;

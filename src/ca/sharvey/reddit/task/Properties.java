@@ -5,7 +5,6 @@ public class Properties extends java.util.Properties implements Comparable<Objec
 
 	private static final long serialVersionUID = -4419831785099203324L;
 
-	@Override
 	public int compareTo(Object o) {
 		if (!(o instanceof Properties)) return 1;
 		Properties p = (Properties)o;

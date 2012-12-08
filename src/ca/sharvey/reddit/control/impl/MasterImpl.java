@@ -42,13 +42,11 @@ public class MasterImpl implements Master, Serializable {
 		System.out.println("Started up!");
 	}
 
-	@Override
 	public synchronized void registerHost(String host, int cores) throws RemoteException {
 		hostList.put(host, cores);
 		System.out.println("Host connected: "+host+" with "+cores+" cores.");
 	}
 
-	@Override
 	public Task[] getTasks(String host, Type type, int num) throws RemoteException {
 		Task[] tasks = new Task[num];
 		for (int i = 0; i < num; i++)
@@ -56,14 +54,12 @@ public class MasterImpl implements Master, Serializable {
 		return tasks;
 	}
 
-	@Override
 	public void updateResults(String host, Type type, Result[] results) throws RemoteException {
 		for (Result r : results) {
 			updateResult(host, type, r);
 		}
 	}
 
-	@Override
 	public Task getTask(String host, Type type) throws RemoteException {
 		Task t = null;
 		switch (type) {
@@ -81,7 +77,6 @@ public class MasterImpl implements Master, Serializable {
 		return t;
 	}
 
-	@Override
 	public void updateResult(String host, Type type, Result result)
 			throws RemoteException {
 		switch (type) {
@@ -115,8 +110,8 @@ public class MasterImpl implements Master, Serializable {
 					} 
 					System.out.println("Exited with exit code "+returned);
 					if (returned != 0) System.exit(returned);
-				} 
-				catch(IOException | InterruptedException e) { e.printStackTrace(); } 
+				} catch(IOException e) { e.printStackTrace(); } 
+				catch (InterruptedException e) { e.printStackTrace(); } 
 			} 
 		}
 	};
