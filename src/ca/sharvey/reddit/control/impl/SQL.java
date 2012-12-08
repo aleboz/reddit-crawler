@@ -149,7 +149,7 @@ public class SQL {
 					"(id,name) " +
 					"VALUES " +
 					"(?,?);");
-			pstmt.setString(1, p.getProperty("subreddit_id"));
+			pstmt.setString(1, p.getProperty("subreddit_id").split("_")[1]);
 			pstmt.setString(2, p.getProperty("subreddit"));
 			pstmt.execute();
 			pstmt.close();
@@ -201,7 +201,7 @@ public class SQL {
 					"(id,name) " +
 					"VALUES " +
 					"(?,?);");
-			pstmt.setString(1, p.getProperty("subreddit_id"));
+			pstmt.setString(1, p.getProperty("subreddit_id").split("_")[1]);
 			pstmt.setString(2, p.getProperty("subreddit"));
 			pstmt.execute();
 			pstmt.close();

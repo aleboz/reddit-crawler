@@ -67,7 +67,7 @@ public class MasterImpl implements Master, Serializable {
 			t = DataStore.getInstance().nextCrawlTask();
 			if (t == null) System.out.println("error!");
 			else
-				System.out.println(DataStore.typeToReddit(t.getType())+" ("+t.getID()+") --> "+host);
+				System.out.printf("%s (%32s) --> %s\n",DataStore.typeToReddit(t.getType()),t.getID(),host);
 			break;
 		case PROCESS:
 			t = DataStore.getInstance().nextProcessTask(); break;
@@ -82,7 +82,7 @@ public class MasterImpl implements Master, Serializable {
 		switch (type) {
 		case CRAWL:
 			Task t = result.getTask();
-			System.out.println(DataStore.typeToReddit(t.getType())+" ("+t.getID()+") <-- "+host);
+			System.out.printf("%s (%32s) <-- %s\n",DataStore.typeToReddit(t.getType()),t.getID(),host);
 			DataStore.getInstance().addCrawlResult(result);
 			break;
 		case PROCESS:

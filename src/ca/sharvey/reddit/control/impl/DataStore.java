@@ -142,7 +142,7 @@ public class DataStore {
 				if (result == null)
 					try { sleep(200); } catch (InterruptedException e) {}
 				else {
-					System.out.println("Processing result from "+result.getTask().getID()+" ("+typeToReddit(result.getTask().getType())+")");
+					System.out.printf("%s (%32s) -- PROCESS\n",typeToReddit(result.getTask().getType()),result.getTask().getID());
 					pullProperties(result.getData(), result.getTask().getType());
 					System.gc();
 				}
@@ -160,7 +160,7 @@ public class DataStore {
 				else {
 					boolean result = processProperties(properties);
 					if (result) {
-						System.out.println("Processing property "+properties.getProperty("kind")+"_"+properties.getProperty("id"));
+						System.out.printf("%s (%32s) -- RECORD\n",properties.getProperty("kind"),properties.getProperty("name"));
 						synchronized(propertiesList) { propertiesList.remove(properties); }
 					}
 					System.gc();
