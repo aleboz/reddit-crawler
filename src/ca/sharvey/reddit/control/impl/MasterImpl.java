@@ -1,4 +1,4 @@
-package ca.sharvey.reddit.control;
+package ca.sharvey.reddit.control.impl;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,14 +10,17 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import ca.sharvey.reddit.Main;
-import ca.sharvey.reddit.sql.SQL;
-import ca.sharvey.reddit.task.Processor;
+import ca.sharvey.reddit.control.Master;
 import ca.sharvey.reddit.task.Result;
 import ca.sharvey.reddit.task.Task;
 import ca.sharvey.reddit.task.Type;
+import ca.sharvey.reddit.task.crawl.AuthorCrawler;
+import ca.sharvey.reddit.task.crawl.CommentCrawler;
+import ca.sharvey.reddit.task.crawl.PostCrawler;
 import ca.sharvey.reddit.task.crawl.SubredditCrawler;
 
 public class MasterImpl implements Master, Serializable {
@@ -26,10 +29,7 @@ public class MasterImpl implements Master, Serializable {
 	public static final int DEFAULT_PORT = 1099;
 
 	private HashMap<String, Integer> hostList = new HashMap<String, Integer>();
-	private ConcurrentLinkedQueue<Task> crawlTaskList = new ConcurrentLinkedQueue<Task>();
-	private ConcurrentLinkedQueue<Task> processTaskList = new ConcurrentLinkedQueue<Task>();
-	private ConcurrentLinkedQueue<Result> crawlResultList = new ConcurrentLinkedQueue<Result>();
-	private ConcurrentLinkedQueue<Result> processResultList = new ConcurrentLinkedQueue<Result>();
+	private Thread[] threads;
 
 	public MasterImpl() throws RemoteException {
 		super();
@@ -42,12 +42,19 @@ public class MasterImpl implements Master, Serializable {
 			Master stub = (Master) UnicastRemoteObject.exportObject(this, 0);
 			Registry registry = LocateRegistry.getRegistry();
 			registry.rebind(Main.RMI_NAME, stub);
-			processor.start();
+			startProcessors();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
 		System.out.println("Started up!");
+	}
+
+	private void startProcessors() {
+		threads = new Processor[Runtime.getRuntime().availableProcessors()];
+		for (Thread t : threads) {
+			t.start();
+		}
 	}
 
 	@Override
@@ -76,9 +83,9 @@ public class MasterImpl implements Master, Serializable {
 		Task t = null;
 		switch (type) {
 		case CRAWL:
-			synchronized (crawlTaskList) { t = crawlTaskList.poll(); } break;
+			t = DataStore.getInstance().nextCrawlTask(); break;
 		case PROCESS:
-			synchronized (processTaskList) { t = processTaskList.poll(); } break;
+			t = DataStore.getInstance().nextProcessTask(); break;
 		default:
 			return null;
 		}
@@ -105,25 +112,28 @@ public class MasterImpl implements Master, Serializable {
 		}
 	}
 
-	private void init() {
-		SubredditCrawler initialTask = new SubredditCrawler("all");
-		crawlTaskList.add(initialTask);
-	}
-
-	private Thread processor = new Thread() {
+	private class Processor extends Thread {
 		public void run() {
-			SQL.getInstance().init();
-			init();
 			while (!isInterrupted()) {
 				Result result = crawlResultList.poll();
 				if (result == null)
 					try { sleep(1000); } catch (InterruptedException e) {}
 				else {
+					ArrayList<Task> tasks = null;
 					switch (result.getTask().getType()) {
-					case CRAWL_POST: Processor.processPostResult(result); break;
-					case CRAWL_COMMENT: Processor.processCommentResult(result); break;
-					case CRAWL_LISTING:
-						ArrayList<Task> tasks = Processor.processListingResult(result);
+					case CRAWL_POST:
+						tasks = pollForAuthors(result);
+						if (tasks != null) {
+							synchronized (crawlTaskList) { crawlTaskList.addAll(tasks); }
+							synchronized (crawlResultList) { crawlResultList.add(result); }
+						}
+						processPostResult(result);
+						break;
+					case CRAWL_COMMENT:
+						processCommentResult(result);
+						break;
+					case CRAWL_SUBREDDIT:
+						tasks = processListingResult(result);
 						synchronized (crawlTaskList) { crawlTaskList.addAll(tasks); }
 						break;
 					default: break;

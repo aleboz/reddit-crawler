@@ -5,6 +5,9 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Properties;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import ca.sharvey.reddit.Main;
 import ca.sharvey.reddit.task.Type;
 
@@ -17,23 +20,27 @@ public class AuthorCrawler extends Crawler {
 		this.id = id;
 		setType(Type.CRAWL_AUTHOR);
 	}
-	
-	public AuthorCrawler(String id, String after, int count) {
-		super(id, after, count);
-		setType(Type.CRAWL_AUTHOR);
-	}
 
 	@Override
 	URL formURL() throws MalformedURLException {
-		if (after == null)
-			return new URL(Main.BASE_SITE+"/user/"+id+".json");
-		else
-			return new URL(Main.BASE_SITE+"/user/"+id+".json?count="+count+"&after="+after);
+		return new URL(Main.BASE_SITE+"/user/"+id+"/about.json");
 	}
 
 	@Override
 	HashMap<String, Properties> processData(String content) {
-		// TODO Auto-generated method stub
+		try {
+			HashMap<String, Properties> data = new HashMap<String, Properties>();
+			JSONObject obj = new JSONObject(content).getJSONObject("data");
+			Properties p = new Properties();
+			p.setProperty("name", obj.getString("name"));
+			p.setProperty("created_utc", obj.getInt("created_utc")+"");
+			p.setProperty("id", obj.getString("id"));
+			data.put("more", p);
+			
+			return data;
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
 		return null;
 	}
 

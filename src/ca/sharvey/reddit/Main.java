@@ -2,8 +2,8 @@ package ca.sharvey.reddit;
 
 import java.rmi.RemoteException;
 
-import ca.sharvey.reddit.control.MasterImpl;
 import ca.sharvey.reddit.control.Slave;
+import ca.sharvey.reddit.control.impl.MasterImpl;
 
 public class Main {
 	
