@@ -128,6 +128,10 @@ public class DataStore {
 			SQL.getInstance().insertComment(properties);
 		} else if (kind.equalsIgnoreCase("t2")) { //author
 			SQL.getInstance().insertAuthor(properties);
+			synchronized(crawlTaskList) {
+				AuthorCrawler ac = new AuthorCrawler(properties.getProperty("name"));
+				while (crawlTaskList.remove(ac));
+			}
 		} else if (kind.equalsIgnoreCase("t3")) { //link
 			SQL.getInstance().insertPost(properties);
 		}
@@ -142,7 +146,7 @@ public class DataStore {
 				if (result == null)
 					try { sleep(200); } catch (InterruptedException e) {}
 				else {
-					System.out.printf("%s (%32s) -- PROCESS\n",typeToReddit(result.getTask().getType()),result.getTask().getID());
+					System.out.printf("%s (%24s) PROCESS\n",typeToReddit(result.getTask().getType()),result.getTask().getID());
 					pullProperties(result.getData(), result.getTask().getType());
 					System.gc();
 				}
@@ -154,14 +158,15 @@ public class DataStore {
 		public void run() {
 			while (!isInterrupted()) {
 				Properties properties = null;
-				synchronized (propertiesList) { properties = propertiesList.peek(); }
+				synchronized (propertiesList) { properties = propertiesList.poll(); }
 				if (properties == null)
 					try { sleep(50); } catch (InterruptedException e) {}
 				else {
 					boolean result = processProperties(properties);
 					if (result) {
-						System.out.printf("%s (%32s) -- RECORD\n",properties.getProperty("kind"),properties.getProperty("name"));
-						synchronized(propertiesList) { propertiesList.remove(properties); }
+						System.out.printf("%s (%24s)  RECORD\n",properties.getProperty("kind"),properties.getProperty("name"));
+					} else {
+						synchronized(propertiesList) { propertiesList.add(properties); }
 					}
 					System.gc();
 				}

@@ -48,4 +48,11 @@ public abstract class Task implements Serializable, Comparable<Object> {
 		if (type == Type.CRAWL_COMMENT) return 1;
 		return 3;
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof Task)) return false;
+		Task t = (Task)obj;
+		return t.id.equals(id);
+	}
 }
