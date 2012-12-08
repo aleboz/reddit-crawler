@@ -7,12 +7,12 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.Properties;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import ca.sharvey.reddit.Main;
+import ca.sharvey.reddit.task.Properties;
 import ca.sharvey.reddit.task.Result;
 import ca.sharvey.reddit.task.Task;
 import ca.sharvey.reddit.task.Type;

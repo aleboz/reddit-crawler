@@ -1,12 +1,12 @@
 package ca.sharvey.reddit.task.crawl;
 
 import java.util.HashMap;
-import java.util.Properties;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import ca.sharvey.reddit.task.Properties;
 import ca.sharvey.reddit.task.Type;
 
 public abstract class ListingCrawler extends Crawler {

@@ -3,12 +3,12 @@ package ca.sharvey.reddit.task.crawl;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.Properties;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import ca.sharvey.reddit.Main;
+import ca.sharvey.reddit.task.Properties;
 import ca.sharvey.reddit.task.Type;
 
 public class PostCrawler extends Crawler {
@@ -38,7 +38,7 @@ public class PostCrawler extends Crawler {
 			Properties properties = new Properties();
 			
 			for (String k : KEYS_STR) {
-				properties.setProperty(k, o1.getString(k));
+				properties.setProperty(k, o1.optString(k));
 			}
 			
 			for (String k : KEYS_INT) {

@@ -2,7 +2,7 @@ package ca.sharvey.reddit.task;
 
 import java.io.Serializable;
 
-public abstract class Task implements Serializable {
+public abstract class Task implements Serializable, Comparable<Object> {
 
 	private static final long serialVersionUID = -2900557920133756338L;
 	private Type type = Type.CRAWL;
@@ -34,5 +34,19 @@ public abstract class Task implements Serializable {
 	
 	public String getID() {
 		return id;
+	}
+	
+	@Override
+	public int compareTo(Object o) {
+		if (!(o instanceof Task)) return 1;
+		Task t = (Task)o;
+		return kindValue()-t.kindValue();
+	}
+	
+	private int kindValue() {
+		if (type == Type.CRAWL_AUTHOR) return 0;
+		if (type == Type.CRAWL_POST) return 2;
+		if (type == Type.CRAWL_COMMENT) return 1;
+		return 3;
 	}
 }

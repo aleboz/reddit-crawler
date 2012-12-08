@@ -2,9 +2,8 @@ package ca.sharvey.reddit.task;
 
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.Properties;
 
-public class Result implements Serializable {
+public class Result implements Serializable, Comparable<Object> {
 
 	private static final long serialVersionUID = -4933647674235696300L;
 	private Type type = Type.CRAWL;
@@ -25,7 +24,7 @@ public class Result implements Serializable {
 		this.type = type;
 	}
 
-	public HashMap<String, Properties> getData() {
+	public HashMap<String, ca.sharvey.reddit.task.Properties> getData() {
 		return data;
 	}
 
@@ -39,5 +38,20 @@ public class Result implements Serializable {
 
 	public void setTask(Task task) {
 		this.task = task;
+	}
+	
+	@Override
+	public int compareTo(Object o) {
+		if (!(o instanceof Result)) return 1;
+		Result r = (Result)o;
+		return kindValue()-r.kindValue();
+	}
+	
+	private int kindValue() {
+		Type type = task.getType();
+		if (type == Type.CRAWL_AUTHOR) return 0;
+		if (type == Type.CRAWL_POST) return 2;
+		if (type == Type.CRAWL_COMMENT) return 1;
+		return 3;
 	}
 }

@@ -6,13 +6,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
+
+import ca.sharvey.reddit.task.Properties;
 
 public class SQL {
 
 	private static final String SQL_CLASS = "org.sqlite.JDBC";
 	private static final String SQL_CONNECTOR = "jdbc:sqlite";
-	private static final String SQL_STORE = "/tmp/dataset/reddit";
+	private static final String SQL_STORE = "/srv/dataset/reddit";
 	private static final String DB_A = SQL_STORE+"/all.db";
 	private static final String DB_R = SQL_STORE+"/subreddits.db";
 	private static final String DB_U = SQL_STORE+"/users.db";
@@ -88,7 +89,7 @@ public class SQL {
 	
 	public void insertPost(Properties p) {
 		insertPostToDB(p, db_a, null);
-		insertPostToDB(p, db_r, "_"+p.getProperty("subreddit_id"));
+		insertPostToDB(p, db_r, "_"+p.getProperty("subreddit_id").split("_")[1]);
 		insertPostToDB(p, db_u, "_"+get_author_id(p.getProperty("author")));
 	}
 	
@@ -110,7 +111,7 @@ public class SQL {
 					"(?,?,?,?,?,?,?,?,?,?);");
 			pstmt.setString(1, p.getProperty("id"));
 			pstmt.setString(2, author_id);
-			pstmt.setString(3, p.getProperty("subreddit_id"));
+			pstmt.setString(3, p.getProperty("subreddit_id").split("_")[1]);
 			pstmt.setString(4, p.getProperty("title"));
 			pstmt.setString(5, p.getProperty("selftext"));
 			pstmt.setString(6, p.getProperty("selftext_html"));
@@ -139,7 +140,7 @@ public class SQL {
 	
 	public void insertComment(Properties p) {
 		insertCommentToDB(p, db_a, null);
-		insertCommentToDB(p, db_r, "_"+p.getProperty("subreddit_id"));
+		insertCommentToDB(p, db_r, "_"+p.getProperty("subreddit_id").split("_")[1]);
 		insertCommentToDB(p, db_u, "_"+get_author_id(p.getProperty("author")));
 	}
 	
@@ -149,28 +150,27 @@ public class SQL {
 			String table_name = (prefix == null)?"comments":prefix+"_comments";
 			
 			Statement stmt = db.createStatement();
-			stmt.executeUpdate("CREATE TABLE IF NOT EXISTS "+table_name+" "+SQLS_POST_CREATE_COLS);
+			stmt.executeUpdate("CREATE TABLE IF NOT EXISTS "+table_name+" "+SQLS_COMMENT_CREATE_COLS);
 			stmt.close();
 			
 			db.setAutoCommit(false);
 			PreparedStatement pstmt = null;
 			
 			pstmt = db.prepareStatement("INSERT OR REPLACE INTO "+table_name+" " +
-					"(id,parent_id,link_id,author_id,subreddit_id,title,body,body_html,url,created_utc,ups,downs) " +
+					"(id,parent_id,link_id,author_id,subreddit_id,title,body,body_html,created_utc,ups,downs) " +
 					"VALUES " +
-					"(?,?,?,?,?,?,?,?,?,?,?,?);");
+					"(?,?,?,?,?,?,?,?,?,?,?);");
 			pstmt.setString(1, p.getProperty("id"));
 			pstmt.setString(2, p.getProperty("parent_id").split("_")[1]);
 			pstmt.setString(3, p.getProperty("link_id").split("_")[1]);
 			pstmt.setString(4, author_id);
-			pstmt.setString(5, p.getProperty("subreddit_id"));
+			pstmt.setString(5, p.getProperty("subreddit_id").split("_")[1]);
 			pstmt.setString(6, p.getProperty("title"));
-			pstmt.setString(7, p.getProperty("selftext"));
-			pstmt.setString(8, p.getProperty("selftext_html"));
-			pstmt.setString(9, p.getProperty("url"));
-			pstmt.setLong(10, Long.parseLong(p.getProperty("created_utc")));
-			pstmt.setInt(11, Integer.parseInt(p.getProperty("ups")));
-			pstmt.setInt(12, Integer.parseInt(p.getProperty("downs")));
+			pstmt.setString(7, p.getProperty("body"));
+			pstmt.setString(8, p.getProperty("body_html"));
+			pstmt.setLong(9, Long.parseLong(p.getProperty("created_utc")));
+			pstmt.setInt(10, Integer.parseInt(p.getProperty("ups")));
+			pstmt.setInt(11, Integer.parseInt(p.getProperty("downs")));
 			pstmt.execute();
 			pstmt.close();
 			
@@ -180,6 +180,35 @@ public class SQL {
 					"(?,?);");
 			pstmt.setString(1, p.getProperty("subreddit_id"));
 			pstmt.setString(2, p.getProperty("subreddit"));
+			pstmt.execute();
+			pstmt.close();
+			
+			db.commit();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void insertAuthor(Properties p) {
+		insertAuthorToDB(p, db_a);
+		insertAuthorToDB(p, db_r);
+		insertAuthorToDB(p, db_u);
+	}
+	
+	private void insertAuthorToDB(Properties p, Connection db) {
+		try {
+			
+			db.setAutoCommit(false);
+			PreparedStatement pstmt = null;
+			
+			pstmt = db.prepareStatement("INSERT OR REPLACE INTO key_author " +
+					"(id,name,created_utc) " +
+					"VALUES " +
+					"(?,?,?);");
+			pstmt.setString(1, p.getProperty("id"));
+			pstmt.setString(2, p.getProperty("name"));
+			pstmt.setLong(3, Long.parseLong(p.getProperty("created_utc")));
 			pstmt.execute();
 			pstmt.close();
 			

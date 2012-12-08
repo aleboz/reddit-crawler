@@ -1,25 +1,30 @@
 package ca.sharvey.reddit;
 
-import ca.sharvey.reddit.task.Processor;
+import ca.sharvey.reddit.control.impl.DataStore;
 import ca.sharvey.reddit.task.Result;
-import ca.sharvey.reddit.task.crawl.CommentCrawler;
+import ca.sharvey.reddit.task.crawl.AuthorCrawler;
+import ca.sharvey.reddit.task.crawl.PostCrawler;
 
 public class Test {
 	public static void main(String[] args) {
-		//PostCrawler pc = new PostCrawler("13y4ai");
-		//Result r = pc.execute();
-		
-		CommentCrawler cc = new CommentCrawler("146gop");//, "c7ac6w0");
-		Result r = cc.execute();
+		Result r;
 
-		//AuthorCrawler ac = new AuthorCrawler("worldwise001");
-		//Result r = ac.execute();
+		AuthorCrawler ac = new AuthorCrawler("worldwise001");
+		r = ac.execute();
+		DataStore.getInstance().pullProperties(r.getData(), r.getTask().getType());
+		
+		PostCrawler pc = new PostCrawler("s3eb7");
+		r = pc.execute();
+		DataStore.getInstance().pullProperties(r.getData(), r.getTask().getType());
+		
+		DataStore.getInstance().printPropertyList();
+		
+		//CommentCrawler cc = new CommentCrawler("146gop");//, "c7ac6w0");
+		//r = cc.execute();
+
 
 		//SubredditCrawler sc = new SubredditCrawler("uwaterloo");//, "t3_13ucru", 25);
 		//Result r = sc.execute();
-		
-		Processor.initSQL();
-		Processor.processCommentResult(r);
 		
 		/*
 		HashMap<String, Properties> data = r.getData();

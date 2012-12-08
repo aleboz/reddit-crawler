@@ -3,13 +3,13 @@ package ca.sharvey.reddit.task.crawl;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.Properties;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import ca.sharvey.reddit.Main;
+import ca.sharvey.reddit.task.Properties;
 import ca.sharvey.reddit.task.Type;
 
 public class CommentCrawler extends Crawler {
@@ -52,9 +52,11 @@ public class CommentCrawler extends Crawler {
 				for (String k : KEYS_INT) {
 					properties.setProperty(k, data.getInt(k)+"");
 				}
+				properties.setProperty("kind", type);
 				return properties;
 			} else {
 				more.setProperty(data.getString("id"), data.getString("name"));
+				more.setProperty("link_id", id);
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();

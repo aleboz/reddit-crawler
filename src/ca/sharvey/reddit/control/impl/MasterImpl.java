@@ -8,20 +8,13 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import ca.sharvey.reddit.Main;
 import ca.sharvey.reddit.control.Master;
 import ca.sharvey.reddit.task.Result;
 import ca.sharvey.reddit.task.Task;
 import ca.sharvey.reddit.task.Type;
-import ca.sharvey.reddit.task.crawl.AuthorCrawler;
-import ca.sharvey.reddit.task.crawl.CommentCrawler;
-import ca.sharvey.reddit.task.crawl.PostCrawler;
-import ca.sharvey.reddit.task.crawl.SubredditCrawler;
 
 public class MasterImpl implements Master, Serializable {
 
@@ -29,7 +22,6 @@ public class MasterImpl implements Master, Serializable {
 	public static final int DEFAULT_PORT = 1099;
 
 	private HashMap<String, Integer> hostList = new HashMap<String, Integer>();
-	private Thread[] threads;
 
 	public MasterImpl() throws RemoteException {
 		super();
@@ -42,19 +34,12 @@ public class MasterImpl implements Master, Serializable {
 			Master stub = (Master) UnicastRemoteObject.exportObject(this, 0);
 			Registry registry = LocateRegistry.getRegistry();
 			registry.rebind(Main.RMI_NAME, stub);
-			startProcessors();
+			DataStore.getInstance().startProcessors();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
 		System.out.println("Started up!");
-	}
-
-	private void startProcessors() {
-		threads = new Processor[Runtime.getRuntime().availableProcessors()];
-		for (Thread t : threads) {
-			t.start();
-		}
 	}
 
 	@Override
@@ -83,17 +68,16 @@ public class MasterImpl implements Master, Serializable {
 		Task t = null;
 		switch (type) {
 		case CRAWL:
-			t = DataStore.getInstance().nextCrawlTask(); break;
+			t = DataStore.getInstance().nextCrawlTask();
+			if (t == null) System.out.println("error!");
+			else
+				System.out.println(DataStore.typeToReddit(t.getType())+" ("+t.getID()+") --> "+host);
+			break;
 		case PROCESS:
 			t = DataStore.getInstance().nextProcessTask(); break;
 		default:
 			return null;
 		}
-
-		if (t != null)
-			System.out.println("Sending task "+t.getUID()+" to "+host);
-		else
-			System.out.println("Polling for no tasks");
 		return t;
 	}
 
@@ -102,46 +86,17 @@ public class MasterImpl implements Master, Serializable {
 			throws RemoteException {
 		switch (type) {
 		case CRAWL:
-			synchronized (crawlResultList) { crawlResultList.add(result); }
+			Task t = result.getTask();
+			System.out.println(DataStore.typeToReddit(t.getType())+" ("+t.getID()+") <-- "+host);
+			DataStore.getInstance().addCrawlResult(result);
 			break;
 		case PROCESS:
-			synchronized (processResultList) { processResultList.add(result); }
+			DataStore.getInstance().addProcessResult(result);
 			break;
 		default:
 			break;
 		}
 	}
-
-	private class Processor extends Thread {
-		public void run() {
-			while (!isInterrupted()) {
-				Result result = crawlResultList.poll();
-				if (result == null)
-					try { sleep(1000); } catch (InterruptedException e) {}
-				else {
-					ArrayList<Task> tasks = null;
-					switch (result.getTask().getType()) {
-					case CRAWL_POST:
-						tasks = pollForAuthors(result);
-						if (tasks != null) {
-							synchronized (crawlTaskList) { crawlTaskList.addAll(tasks); }
-							synchronized (crawlResultList) { crawlResultList.add(result); }
-						}
-						processPostResult(result);
-						break;
-					case CRAWL_COMMENT:
-						processCommentResult(result);
-						break;
-					case CRAWL_SUBREDDIT:
-						tasks = processListingResult(result);
-						synchronized (crawlTaskList) { crawlTaskList.addAll(tasks); }
-						break;
-					default: break;
-					}
-				}
-			}
-		}
-	};
 
 	private Thread rmiRegistry = new Thread() {
 		public void run() {
