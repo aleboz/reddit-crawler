@@ -120,7 +120,6 @@ public class DataStore {
 		if (kind.equalsIgnoreCase("t1") || kind.equalsIgnoreCase("t3")) {
 			String author_id = SQL.getInstance().get_author_id(properties.getProperty("author"));
 			if (author_id == null) {
-				synchronized(propertiesList) { propertiesList.add(properties); }
 				return false;
 			}
 		}
@@ -145,6 +144,7 @@ public class DataStore {
 				else {
 					System.out.println("Processing result from "+result.getTask().getID()+" ("+typeToReddit(result.getTask().getType())+")");
 					pullProperties(result.getData(), result.getTask().getType());
+					System.gc();
 				}
 			}
 		}
@@ -154,13 +154,16 @@ public class DataStore {
 		public void run() {
 			while (!isInterrupted()) {
 				Properties properties = null;
-				synchronized (propertiesList) { properties = propertiesList.poll(); }
+				synchronized (propertiesList) { properties = propertiesList.peek(); }
 				if (properties == null)
 					try { sleep(200); } catch (InterruptedException e) {}
 				else {
 					boolean result = processProperties(properties);
-					if (result)
+					if (result) {
 						System.out.println("Processing property "+properties.getProperty("kind")+"_"+properties.getProperty("id"));
+						synchronized(propertiesList) { propertiesList.remove(properties); }
+					}
+					System.gc();
 				}
 			}
 		}

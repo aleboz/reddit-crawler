@@ -77,6 +77,7 @@ public class Slave {
 					r = t.execute();
 					System.out.println("Executed "+typeToReddit(t.getType())+" ("+t.getID()+")");
 					host.updateResult(me, ty, r);
+					System.gc();
 				} catch (RemoteException e) {
 					e.printStackTrace();
 					System.exit(1);
