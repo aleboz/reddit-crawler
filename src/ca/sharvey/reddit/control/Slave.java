@@ -72,11 +72,12 @@ public class Slave {
 					while (t == null) {
 						if (ty == Type.PROCESS) ty = whatShouldIRequest();
 						t = host.getTask(me, ty);
-						try { Thread.sleep(500); } catch (InterruptedException e) {}
+						try { Thread.sleep(50); } catch (InterruptedException e) {}
 					}
 					r = t.execute();
 					System.out.println("Executed "+typeToReddit(t.getType())+" ("+t.getID()+")");
 					host.updateResult(me, ty, r);
+					try { sleep(50); } catch (InterruptedException e) {}
 					System.gc();
 				} catch (RemoteException e) {
 					e.printStackTrace();

@@ -216,6 +216,7 @@ public class SQL {
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
+			System.out.println(p.getProperty("id")+" "+p.getProperty("name")+" "+p.getProperty("created_utc"));
 		}
 	}
 

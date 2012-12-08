@@ -156,7 +156,7 @@ public class DataStore {
 				Properties properties = null;
 				synchronized (propertiesList) { properties = propertiesList.peek(); }
 				if (properties == null)
-					try { sleep(200); } catch (InterruptedException e) {}
+					try { sleep(50); } catch (InterruptedException e) {}
 				else {
 					boolean result = processProperties(properties);
 					if (result) {
@@ -165,6 +165,7 @@ public class DataStore {
 					}
 					System.gc();
 				}
+				try { sleep(50); } catch (InterruptedException e) {}
 			}
 		}
 	}
@@ -172,10 +173,7 @@ public class DataStore {
 	public void startProcessors() {
 		ResultProcessor rp = new ResultProcessor();
 		rp.start();
-		PropertiesProcessor[] pp = new PropertiesProcessor[Runtime.getRuntime().availableProcessors()];
-		for (int i = 0; i < pp.length; i++) {
-			pp[i] = new PropertiesProcessor();
-			pp[i].start();
-		}
+		PropertiesProcessor pp = new PropertiesProcessor();
+		pp.start();
 	};
 }
