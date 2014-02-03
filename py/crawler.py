@@ -166,7 +166,9 @@ class ServerHandler(SocketServer.StreamRequestHandler):
         
         if debug:
             print 'Building up queue for '+client
-        for filename in dirlist.sort():
+        if type(dirlist) == 'list':
+            dirlist = dirlist.sort()
+        for filename in dirlist:
             try:
                 os.rename(os.path.join(queue_dir, filename), os.path.join(local_dir, filename))
                 break
@@ -211,7 +213,10 @@ class Client:
                 print '  GET '+url
                 r = requests.get(url)
                 status_code = r.status_code
-                data = r.text
+                try:
+                    data = r.text
+                except:
+                    data = r.content
                 print '    '+str(status_code)+' - '+str(len(data))
             time.sleep(1)
             sys.stdout.flush()
