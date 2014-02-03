@@ -366,6 +366,7 @@ def setup_server(port):
 
 def setup_client(hostname, port):
     print 'Running client component'
+    data_setup()
     while True:
         client = Client()
         client.run(hostname, port)
