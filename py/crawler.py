@@ -23,8 +23,8 @@ class DP:
     author_list = []
     skip_list = ['[deleted]']
     store = None
-    def write_to_queue(self, data):
-        fh, filename = tempfile.mkstemp(dir=os.path.join(tmpdir, 'dp', 'queue'))
+    def write_to_queue(self, data, prefix='tmp'):
+        fh, filename = tempfile.mkstemp(dir=os.path.join(tmpdir, 'dp', 'queue'), prefix=prefix)
         os.close(fh)
         fp = open(filename, 'w')
         fp.write(data)
@@ -35,7 +35,7 @@ class DP:
         self.store = Store('/tmp/reddit/')
         self.store.open()
         print 'Created seed queue'
-        return self.write_to_queue('a,t3_1u4kuf')
+        return self.write_to_queue('a,t3_1u4kuf', 'tmp_l_')
 
     def process_author(self, abspath, filename):
         filetype = filename.split('_')
@@ -44,7 +44,7 @@ class DP:
         fp.close()
         elements = parser.extract_listing_elements(blob)
         self.store.store_author(elements)
-        return ''
+        return []
 
     def process_snapshot(self, abspath, filename):
         filetype = filename.split('_')
@@ -64,14 +64,12 @@ class DP:
                     start_hit = True
                     break
                 else:
-                    queue_list.append('p,'+sube['id'])
+                    queue_list.append(self.write_to_queue('p,'+sube['id'], 'tmp_e_'))
             if start_hit is not True:
                 nav = parser.extract_listing_nav(blob)
                 if nav['after'] is not None:
-                    queue_list.append('a,'+nav['after'])
-            if len(queue_list) > 0:
-                return self.write_to_queue('\n'.join(queue_list))
-            return ''
+                    queue_list.append(self.write_to_queue('a,'+nav['after'], 'tmp_l_'))
+            return queue_list
         elif filetype[0] == 'p':
             post = parser.extract_post(blob)
             comments = parser.extract_post_comments(blob)
@@ -79,16 +77,14 @@ class DP:
             
             queue_list = []
             if post['author'] not in self.author_list and post['author'] not in self.skip_list:
-                queue_list.append('u,'+post['author'])
+                queue_list.append(self.write_to_queue('u,'+post['author'], 'tmp_a_'))
                 self.author_list.append(post['author'])
             for comment in comments:
                 if comment['author'] not in self.author_list and comment['author'] not in self.skip_list:
-                    queue_list.append('u,'+comment['author'])
+                    queue_list.append(self.write_to_queue('u,'+comment['author'], 'tmp_a_'))
                     self.author_list.append(comment['author'])
-            if len(queue_list) > 0:
-                return self.write_to_queue('\n'.join(queue_list))
-            return ''
-        return ''
+            return queue_list
+        return []
 
     def run(self):
         seedfile = self.seed()
@@ -118,12 +114,12 @@ class DP:
                     # | a | <pid>
                     # | p | <pid>
                     # | u | <username> | <after>
-                    queue_file = ''
+                    queue_list = ''
                     if filetype[0] == 'a' or filetype[0] == 'p':
-                        queue_file = self.process_snapshot(abspath, jsonfile)
+                        queue_list = self.process_snapshot(abspath, jsonfile)
                     elif filetype[0] == 'u':
-                        queue_file = self.process_author(abspath, jsonfile)
-                    if queue_file != '':
+                        queue_list = self.process_author(abspath, jsonfile)
+                    for queue_file in queue_list:
                         os.rename(os.path.join(tmpdir, 'dp', 'queue', queue_file), os.path.join(tmpdir, 'server', 'queue', queue_file))
                         print 'Server << '+queue_file
                 # cleanup dir
@@ -173,6 +169,7 @@ class ServerHandler(SocketServer.StreamRequestHandler):
         for filename in dirlist:
             try:
                 os.rename(os.path.join(queue_dir, filename), os.path.join(local_dir, filename))
+                break
             except:
                 pass
 
