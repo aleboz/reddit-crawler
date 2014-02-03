@@ -393,6 +393,10 @@ def data_setup():
             'staging'
         }
     }
+    try:
+        os.mkdir(tmpdir)
+    except OSError:
+        pass
     for d1 in dirs:
         try:
             os.mkdir(os.path.join(tmpdir, d1))
