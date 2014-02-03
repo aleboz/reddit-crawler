@@ -166,7 +166,7 @@ class ServerHandler(SocketServer.StreamRequestHandler):
         
         if debug:
             print 'Building up queue for '+client
-        for filename in dirlist:
+        for filename in dirlist.sort():
             try:
                 os.rename(os.path.join(queue_dir, filename), os.path.join(local_dir, filename))
                 break
