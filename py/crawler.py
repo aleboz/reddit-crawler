@@ -99,9 +99,17 @@ class DP:
                 abspath = os.path.join(tmpdir, 'dp', 'staging', prefix)
 
                 os.mkdir(abspath)
-                tar = tarfile.open(absfilename)
-                tar.extractall(abspath)
-                tar.close()
+                tar = None
+                try:
+                    tar = tarfile.open(absfilename)
+                    tar.extractall(abspath)
+                    tar.close()
+                except:
+                    print 'Probably empty tar'
+                    os.unlink(absfilename)
+                    shutil.rmtree(abspath)
+                    continue
+
                 if debug:
                     os.rename(absfilename, os.path.join(tmpdir, 'dp', 'archive', filename))
                 else:
@@ -208,6 +216,11 @@ class Client:
         status_code = 0
         data = ''
         while (status_code != 200):
+            if status_code == 404:
+                print 'Page '+url+' not found!'
+                if return_data:
+                    return ''
+                return
             t = int(time.time())
             if t % 2 == 0:
                 print '  GET '+url
