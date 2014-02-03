@@ -35,7 +35,7 @@ class DP:
         self.store = Store('/tmp/reddit/')
         self.store.open()
         print 'Created seed queue'
-        return self.write_to_queue('a,t3_1uesy5')
+        return self.write_to_queue('a,t3_1u4kuf')
 
     def process_author(self, abspath, filename):
         filetype = filename.split('_')
