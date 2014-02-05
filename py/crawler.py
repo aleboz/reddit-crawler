@@ -18,6 +18,7 @@ datestart = '20131201'
 dateend   = '20131231'
 tmpdir = '/tmp/reddit'
 debug = False
+crawl_author = False
 
 class DP:
     author_list = []
@@ -75,15 +76,16 @@ class DP:
             comments = parser.extract_post_comments(blob)
             self.store.store_snapshot(post, comments)
             
-            queue_list = []
-            if post['author'] not in self.author_list and post['author'] not in self.skip_list:
-                queue_list.append(self.write_to_queue('u,'+post['author'], 'tmp_a_'))
-                self.author_list.append(post['author'])
-            for comment in comments:
-                if comment['author'] not in self.author_list and comment['author'] not in self.skip_list:
-                    queue_list.append(self.write_to_queue('u,'+comment['author'], 'tmp_a_'))
-                    self.author_list.append(comment['author'])
-            return queue_list
+            if crawl_author:
+                queue_list = []
+                if post['author'] not in self.author_list and post['author'] not in self.skip_list:
+                    queue_list.append(self.write_to_queue('u,'+post['author'], 'tmp_a_'))
+                    self.author_list.append(post['author'])
+                for comment in comments:
+                    if comment['author'] not in self.author_list and comment['author'] not in self.skip_list:
+                        queue_list.append(self.write_to_queue('u,'+comment['author'], 'tmp_a_'))
+                        self.author_list.append(comment['author'])
+                return queue_list
         return []
 
     def run(self):
@@ -245,6 +247,8 @@ class Client:
         filename = 'p_'+pid+'_'+cid
         url = 'http://www.reddit.com/comments/'+pid+'.json?comment='+cid
         data = self.download(url, os.path.join(download_dir, filename), True)
+        if data == '':
+            return False
         blob = json.loads(data)
         comments_list = parser.extract_post_comments_missing(blob)
         return comments_list
@@ -256,45 +260,60 @@ class Client:
         if pid is not None and pid != '':
             url += '?after='+pid
             filename += '_'+pid
-        self.download(url, os.path.join(download_dir, filename))
+        data = self.download(url, os.path.join(download_dir, filename), True)
+        if data == '':
+            return False
+        return True
 
     def download_p(self, pid):
         download_dir = os.path.join(tmpdir, 'client', 'staging')
         url = 'http://www.reddit.com/comments/'+pid+'.json'
         filename = 'p_'+pid
         data = self.download(url, os.path.join(download_dir, filename), True)
+        if data == '':
+            return False
         blob = json.loads(data)
         post = parser.extract_post(blob)
         comments_list = parser.extract_post_comments_missing(blob)
         while len(comments_list) > 0:
             comment = comments_list.pop()
-            comments_list.extend(self.download_c(post['id'], comment))
+            comments = self.download_c(post['id'], comment)
+            if comments is not False:
+                comments_list.extend(comments)
+        return True
 
     def download_u(self, user):
         download_dir = os.path.join(tmpdir, 'client', 'staging')
         url = 'http://www.reddit.com/user/'+user+'.json'
         filename = 'u_'+user
         data = self.download(url, os.path.join(download_dir, filename), True)
+        if data == '':
+            return False
         blob = json.loads(data)
         nav = parser.extract_listing_nav(blob)
         while nav['after'] is not None:
             newurl = url+'?after='+nav['after']
             filename = 'u_'+user+'_'+nav['after']
             data = self.download(newurl, os.path.join(download_dir, filename), True)
+            if data == '':
+                return False
             blob = json.loads(data)
             nav = parser.extract_listing_nav(blob)
+        return True
     
     def download_req(self, req):
         # format of request:
         # | a | <pid>
         # | p | <pid>
         # | u | <username> | <after>
+        res = True
         if req[0] == 'a':
-            self.download_a(req[1])
+            res = self.download_a(req[1])
         elif req[0] == 'p':
-            self.download_p(req[1])
+            res = self.download_p(req[1])
         elif req[0] == 'u':
-            self.download_u(req[1])
+            res = self.download_u(req[1])
+        return res
 
     def download_data(self, reqlist):
         for req in reqlist:
