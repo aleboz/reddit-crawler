@@ -28,6 +28,21 @@ def extract_post_comments(blob):
             comment_list.append(comment)
     return comment_list
 
+# Extract comments from a api morechildren display
+def extract_api_comments(blob):
+    comment_list = []
+    wrapper = blob['json']['data']['things']
+    for child in wrapper:
+        if child['kind'] != 't1':
+            continue
+        comment = dict()
+        for key in child['data']:
+            if key != 'replies':
+                comment[key] = child['data'][key]
+        comment[u'kind'] = u't1'
+        comment_list.append(comment)
+    return comment_list
+
 # Extract individual comments that need to be requested from a post+comments display
 def extract_post_comments_missing(blob):
     comment_list = []

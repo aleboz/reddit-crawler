@@ -6,12 +6,15 @@ import json
 import pprint
 from hashlib import sha1
 from random import random
+import parser
+import time
+import sys
 
 user_agent = '/u/worldwise001\'s reddit crawler (github.com/worldwise001/reddit-crawler)'
 
 auth_url = 'https://ssl.reddit.com/api/v1/authorize'
 access_url = 'https://ssl.reddit.com/api/v1/access_token'
-base_url = 'https://oauth.reddit.com/api/v1/'
+base_url = 'https://oauth.reddit.com/api/'
 
 class Reddit:
     service = None
@@ -34,14 +37,100 @@ class Reddit:
         if self.login() == 200:
             self.authorize()
 
+    def request(self, httptype, url, params):
+        status_code = 0
+        data = None
+        while (status_code != 200):
+            if status_code == 404:
+                print 'Page %s not found!' % (url)
+                return data
+            t = int(time.time())
+            if t % 2 == 0:
+                print '  %s %s %s' % (httptype, url, str(params))
+                headers = { 'user-agent': user_agent }
+                if httptype == 'POST':
+                    r = requests.post(url, data=params, headers=headers)
+                elif httptype == 'GET':
+                    r = requests.get(url, params=params, headers=headers)
+                status_code = r.status_code
+                try:
+                    data = r.text
+                except:
+                    data = r.content
+                print '    '+str(status_code)+' - '+str(len(data))
+            time.sleep(1)
+            sys.stdout.flush()
+        return data
+
+    def api_request(self, httptype, endpoint, params):
+        status_code = 0
+        data = None
+        while (status_code != 200):
+            if status_code == 404:
+                print 'Page %s%s not found!' % (base_url, endpoint)
+                return data
+            t = int(time.time())
+            if t % 2 == 0:
+                print '  %s %s%s %s' % (httptype, base_url, endpoint, str(params))
+                headers = { 'user-agent': user_agent }
+                s = self.service.get_session(self.access_token)
+                if httptype == 'POST':
+                    r = s.post(endpoint, data=params, headers=headers)
+                elif httptype == 'GET':
+                    r = s.get(endpoint, data=params, headers=headers)
+                status_code = r.status_code
+                try:
+                    data = r.text
+                except:
+                    data = r.content
+                print '    '+str(status_code)+' - '+str(len(data))
+            time.sleep(1)
+            sys.stdout.flush()
+        return data
+
     def getPost(self, pid):
-        pass
+        url = 'http://www.reddit.com/comments/%s.json' % (pid)
+        data = self.request('GET', url, dict())
+        if data == None:
+            return None
+        blob = json.loads(data)
+        post = parser.extract_post(blob)
+        comments = parser.extract_post_comments(blob)
+        comments_list = parser.extract_post_comments_missing(blob)
+        while len(comments_list) > 0:
+            comments_sublist = []
+            if len(comments_list) > 20:
+                comments_sublist = comments_list[:20]
+                comments_list = comments_list[20:]
+            else:
+                comments_sublist = comments_list
+                comments_list = []
+            comments_extra = self.getComments(post['id'], comments_sublist)
+            if comments_extra is not None:
+                comments.extend(comments_extra)
+        return (post, comments)
 
     def getComments(self, pid, cids):
-        pass
+        params = { 'api_type': 'json', 'children': ','.join(cids), 'link_id': 't3_'+pid }
+        data = self.api_request('POST', 'morechildren', params)
+        if data == None:
+            return None
+        blob = json.loads(data)
+        comments = parser.extract_api_comments(blob)
+        return comments
 
     def getListing(self, subreddit, after=None, count=100):
-        pass
+        url = 'http://www.reddit.com/r/%s/new.json' % (subreddit)
+        params = { 'limit': count }
+        if after is not None and after != '':
+            params['after'] = after
+        data = self.request('GET', url, params)
+        if data == None:
+            return None
+        blob = json.loads(data)
+        posts = parser.extract_listing_elements(blob)
+        nav = parser.extract_listing_nav(blob)
+        return (posts, nav)
 
     def clearState(self):
         self.service = None
@@ -136,7 +225,7 @@ class Reddit:
 
     def testAccess(self):
         s = self.service.get_session(self.access_token)
-        user = s.get('me').json()
+        user = s.get('v1/me').json()
         pprint.pprint(user)
 
 reddit = Reddit(creds.key, creds.secret, creds.username, creds.password, 'https://metaether.net')
@@ -144,5 +233,7 @@ reddit.updateToken()
 reddit.testAccess()
 print reddit.access_token
 reddit.updateToken()
-reddit.testAccess()
-print reddit.access_token
+posts, nav = reddit.getListing('all')
+print len(posts), nav
+#post, comments = reddit.getPost('1y28lk')
+
