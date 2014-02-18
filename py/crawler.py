@@ -13,6 +13,8 @@ import time
 import SocketServer
 import parser
 from store import Store
+import creds
+from reddit import Reddit
 
 datestart = '20131201'
 dateend   = '20131231'
@@ -21,9 +23,13 @@ debug = False
 crawl_author = False
 
 class DP:
+    # list of authors that are remembered
     author_list = []
+    # list of authors to skip crawling for various reasons
     skip_list = ['[deleted]']
+    # internal sqlite3 store
     store = None
+    
     def write_to_queue(self, data, prefix='tmp'):
         fh, filename = tempfile.mkstemp(dir=os.path.join(tmpdir, 'dp', 'queue'), prefix=prefix)
         os.close(fh)
@@ -33,10 +39,10 @@ class DP:
         return os.path.split(filename)[1]
 
     def seed(self):
-        self.store = Store('/tmp/reddit/')
+        self.store = Store('/collection/sharvey/reddit/')
         self.store.open()
         print 'Created seed queue'
-        return self.write_to_queue('a,t3_1u4kuf', 'tmp_l_')
+        return self.write_to_queue('a,t3_1u4kuf', 'tmp_a_')
 
     def process_author(self, abspath, filename):
         filetype = filename.split('_')
@@ -53,10 +59,12 @@ class DP:
         blob = json.load(fp)
         fp.close()
         if filetype[0] == 'a':
-            elements = parser.extract_listing_elements(blob)
+            posts = blob['posts']
+            nav = blob['nav']
             start_hit = False
+            queue_file_list = []
             queue_list = []
-            for sube in elements:
+            for sube in posts:
                 utctime = int(sube['created_utc'])
                 sttime = time.strftime('%Y%m%d', time.gmtime(utctime))
                 if (int(sttime) > int(dateend)):
@@ -65,28 +73,41 @@ class DP:
                     start_hit = True
                     break
                 else:
-                    queue_list.append(self.write_to_queue('p,'+sube['id'], 'tmp_e_'))
+                    queue_list.append('p,'+sube['id'])
+            queue_file_list.append(self.write_to_queue('\n'.join(queue_list), 'tmp_p_'))
             if start_hit is not True:
-                nav = parser.extract_listing_nav(blob)
                 if nav['after'] is not None:
-                    queue_list.append(self.write_to_queue('a,'+nav['after'], 'tmp_l_'))
-            return queue_list
+                    queue_file_list.append(self.write_to_queue('a,'+nav['after'], 'tmp_a_'))
+            return queue_file_list
         elif filetype[0] == 'p':
-            post = parser.extract_post(blob)
-            comments = parser.extract_post_comments(blob)
+            post = blob['post']
+            comments = blob['comments']
             self.store.store_snapshot(post, comments)
             
             if crawl_author:
-                queue_list = []
+                queue_file_list = []
                 if post['author'] not in self.author_list and post['author'] not in self.skip_list:
-                    queue_list.append(self.write_to_queue('u,'+post['author'], 'tmp_a_'))
+                    queue_file_list.append(self.write_to_queue('u,'+post['author'], 'tmp_u_'))
                     self.author_list.append(post['author'])
                 for comment in comments:
                     if comment['author'] not in self.author_list and comment['author'] not in self.skip_list:
-                        queue_list.append(self.write_to_queue('u,'+comment['author'], 'tmp_a_'))
+                        queue_file_list.append(self.write_to_queue('u,'+comment['author'], 'tmp_u_'))
                         self.author_list.append(comment['author'])
-                return queue_list
+                return queue_file_list
         return []
+
+    def process_snapshots(self, abspath, filename_list):
+        post_tuples = []
+        for filename in filename_list:
+            filetype = filename.split('_')
+            fp = open(os.path.join(abspath, filename))
+            blob = json.load(fp)
+            fp.close()
+            post_tuples.append( (blob['post'], blob['comments']) )
+        self.store.store_batch_snapshot(post_tuples)
+            
+        if crawl_author:
+                queue_file_list = []
 
     def run(self):
         seedfile = self.seed()
@@ -117,26 +138,32 @@ class DP:
                 else:
                     os.unlink(absfilename)
 
+                post_snapshots = []
+                print 'Server >> '+str(os.listdir(abspath))
                 for jsonfile in os.listdir(abspath):
-                    print 'Server >> '+jsonfile
                     filetype = jsonfile.split('_')
                     # format of request:
                     # | a | <pid>
                     # | p | <pid>
                     # | u | <username> | <after>
                     queue_list = ''
-                    if filetype[0] == 'a' or filetype[0] == 'p':
+                    if filetype[0] == 'a':
                         queue_list = self.process_snapshot(abspath, jsonfile)
+                    elif filetype[0] == 'p':
+                        post_snapshots.append(jsonfile)
                     elif filetype[0] == 'u':
                         queue_list = self.process_author(abspath, jsonfile)
                     for queue_file in queue_list:
+                        print queue_file
+                        print os.path.join(tmpdir, 'dp', 'queue', queue_file), os.path.join(tmpdir, 'server', 'queue', queue_file)
                         os.rename(os.path.join(tmpdir, 'dp', 'queue', queue_file), os.path.join(tmpdir, 'server', 'queue', queue_file))
                         print 'Server << '+queue_file
+                self.process_snapshots(abspath, post_snapshots)
                 # cleanup dir
                 shutil.rmtree(abspath)
             else:
                 time.sleep(0.2)
-                if sleepcount < 100:
+                if sleepcount < 10:
                     sleepcount += 1
                 else:
                     self.store.close()
@@ -177,7 +204,7 @@ class ServerHandler(SocketServer.StreamRequestHandler):
         if debug:
             print 'Building up queue for '+client
         if type(dirlist) == 'list':
-            dirlist = dirlist.sort()
+            dirlist = sorted(dirlist, reverse=True)
         for filename in dirlist:
             try:
                 os.rename(os.path.join(queue_dir, filename), os.path.join(local_dir, filename))
@@ -191,9 +218,9 @@ class ServerHandler(SocketServer.StreamRequestHandler):
             for line in fp:
                 line = line.strip()
                 self.wfile.write(line+'\n')
-                print client+' << '+line
                 self.wfile.flush()
             fp.close()
+            print client+' << '+filename
             os.unlink(os.path.join(local_dir, filename))
         print client+' << EOF'
         self.wfile.write('\n\n')
@@ -213,80 +240,32 @@ class Server(SocketServer.ForkingMixIn, SocketServer.TCPServer):
 
 class Client:
     sock = None
+    reddit = None
     
-    def download(self, url, filename, return_data=False):
-        status_code = 0
-        data = ''
-        while (status_code != 200):
-            if status_code == 404:
-                print 'Page '+url+' not found!'
-                if return_data:
-                    return ''
-                return
-            t = int(time.time())
-            if t % 2 == 0:
-                print '  GET '+url
-                r = requests.get(url)
-                status_code = r.status_code
-                try:
-                    data = r.text
-                except:
-                    data = r.content
-                print '    '+str(status_code)+' - '+str(len(data))
-            time.sleep(1)
-            sys.stdout.flush()
-        fp = open(filename, 'w')
-        fp.write(data)
+    def download_a(self, after=None):
+        download_dir = os.path.join(tmpdir, 'client', 'staging')
+        posts, nav = self.reddit.getListing('all', after)
+        blob = { 'posts': posts, 'nav': nav }
+        fp = open(os.path.join(download_dir, 'a_'+after), 'w')
+        fp.write(json.dumps(blob))
         fp.close()
-        print '    '+filename
-        if return_data:
-            return data
-    
-    def download_c(self, pid, cid):
-        download_dir = os.path.join(tmpdir, 'client', 'staging')
-        filename = 'p_'+pid+'_'+cid
-        url = 'http://www.reddit.com/comments/'+pid+'.json?comment='+cid
-        data = self.download(url, os.path.join(download_dir, filename), True)
-        if data == '':
-            return False
-        blob = json.loads(data)
-        comments_list = parser.extract_post_comments_missing(blob)
-        return comments_list
-    
-    def download_a(self, pid=None):
-        download_dir = os.path.join(tmpdir, 'client', 'staging')
-        url = 'http://www.reddit.com/r/all/new.json'
-        filename = 'a'
-        if pid is not None and pid != '':
-            url += '?after='+pid
-            filename += '_'+pid
-        data = self.download(url, os.path.join(download_dir, filename), True)
-        if data == '':
-            return False
         return True
 
     def download_p(self, pid):
         download_dir = os.path.join(tmpdir, 'client', 'staging')
-        url = 'http://www.reddit.com/comments/'+pid+'.json'
-        filename = 'p_'+pid
-        data = self.download(url, os.path.join(download_dir, filename), True)
-        if data == '':
-            return False
-        blob = json.loads(data)
-        post = parser.extract_post(blob)
-        comments_list = parser.extract_post_comments_missing(blob)
-        while len(comments_list) > 0:
-            comment = comments_list.pop()
-            comments = self.download_c(post['id'], comment)
-            if comments is not False:
-                comments_list.extend(comments)
+        self.reddit.updateToken()
+        post, comments = self.reddit.getPost(pid)
+        blob = { 'post': post, 'comments': comments }
+        fp = open(os.path.join(download_dir, 'p_'+pid), 'w')
+        fp.write(json.dumps(blob))
+        fp.close()
         return True
 
     def download_u(self, user):
         download_dir = os.path.join(tmpdir, 'client', 'staging')
         url = 'http://www.reddit.com/user/'+user+'.json'
         filename = 'u_'+user
-        data = self.download(url, os.path.join(download_dir, filename), True)
+        data = self.download_get(url, os.path.join(download_dir, filename), True)
         if data == '':
             return False
         blob = json.loads(data)
@@ -294,7 +273,7 @@ class Client:
         while nav['after'] is not None:
             newurl = url+'?after='+nav['after']
             filename = 'u_'+user+'_'+nav['after']
-            data = self.download(newurl, os.path.join(download_dir, filename), True)
+            data = self.download_get(newurl, os.path.join(download_dir, filename), True)
             if data == '':
                 return False
             blob = json.loads(data)
@@ -342,54 +321,65 @@ class Client:
         return shutil.make_archive(os.path.join(tmpdir, 'client', 'archive'), 'gztar', os.path.join(tmpdir, 'client', 'staging'))
 
     def run(self, host, port):
-        # Connect to host:port, get the fp
-        fp = self.connect(host, port)
-        
-        # Send hostname of client over initially
-        hostname = socket.getfqdn()
-        fp.write(hostname+'\n')
-        fp.flush()
-        if debug:
-            print 'Sent hostname'
-        
-        # Recv all the urls
-        reqlist = []
-        newline = False
+        self.reddit = Reddit(creds.key, creds.secret, creds.username, creds.password, creds.redirect_uri)
+        self.reddit.updateToken()
+        self.reddit.testAccess()
+        sleeptime = 0
         while True:
-            line = fp.readline()
-            line = line.strip()
-            print host+' >> '+line
-            if line != '':
-                reqlist.append(line.split(','))
-            else:
-                if newline == True:
-                    break
-                newline = True
+            if sleeptime > 10:
+                time.sleep(10)
+            elif sleeptime > 1:
+                time.sleep(1)
+            # Connect to host:port, get the fp
+            fp = self.connect(host, port)
+        
+            # Send hostname of client over initially
+            hostname = socket.getfqdn()
+            fp.write(hostname+'\n')
             fp.flush()
-        
-        # See if any urls were sent, close if zero
-        if len(reqlist) == 0:
             if debug:
-                print 'No requests'
+                print 'Sent hostname'
+        
+            # Recv all the urls
+            reqlist = []
+            newline = False
+            while True:
+                line = fp.readline()
+                line = line.strip()
+                if line != '':
+                    reqlist.append(line.split(','))
+                else:
+                    if newline == True:
+                        break
+                    newline = True
+                fp.flush()
+        
+            print host+' >> '+str(reqlist)
+            # See if any urls were sent, close if zero
+            if len(reqlist) == 0:
+                if debug:
+                    print 'No requests'
+                self.close()
+                sleeptime += 1
+                continue
+            sleeptime = 0
+        
+            if debug:
+                print 'Downloading requests'
+            # Download all the urls otherwise
+            self.download_data(reqlist)
+        
+            # targzip the data
+            targz = self.targz()
+        
+            # Send the data
+            targz_fp = open(targz, 'rb')
+            targz_data = targz_fp.read()
+            fp.write(targz_data)
+            fp.flush()
+            print host+' << archive.tar.gz'
             self.close()
-            return
-        
-        if debug:
-            print 'Downloading requests'
-        # Download all the urls otherwise
-        self.download_data(reqlist)
-        
-        # targzip the data
-        targz = self.targz()
-        
-        # Send the data
-        targz_fp = open(targz, 'rb')
-        targz_data = targz_fp.read()
-        fp.write(targz_data)
-        fp.flush()
-        print host+' << archive.tar.gz'
-        self.close()
-        self.cleanup()
+            self.cleanup()
 
 def setup_server(port):
     print 'Running server component on port '+str(port)
@@ -401,10 +391,8 @@ def setup_server(port):
 def setup_client(hostname, port):
     print 'Running client component'
     data_setup()
-    while True:
-        client = Client()
-        client.run(hostname, port)
-        time.sleep(0.1)
+    client = Client()
+    client.run(hostname, port)
 
 def setup_dp():
     print 'Running data processing component'

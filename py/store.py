@@ -37,6 +37,23 @@ class Store:
         self.author.close()
         self.is_open = False
 
+    def store_batch_snapshot(self, post_tuples):
+        comments_list = []
+        posts_list = []
+
+        for thing in post_tuples:
+            post, comments = thing
+            for entry in comments:
+                comments_list.append( (entry['subreddit_id'], entry['subreddit'], entry['id'], entry['parent_id'], entry['link_id'], entry['author'], entry['body'], entry['body_html'], entry['edited'], entry['created'], entry['ups'], entry['downs']) )
+
+            posts_list.append( (post['subreddit_id'], post['subreddit'], post['id'], post['author'], post['title'], post['selftext'], post['selftext_html'], post['edited'], post['created'], post['ups'], post['downs']) )
+
+        c = self.snapshot.cursor()
+        c.executemany('INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', posts_list)
+        c.executemany('INSERT INTO comments VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', comments_list)
+        self.snapshot.commit()
+        print 'Committed '+str(len(comments_list)+len(posts_list))+' entries'
+
     def store_snapshot(self, post, comments):
         comments_list = []
         posts_list = []

@@ -228,12 +228,15 @@ class Reddit:
         user = s.get('v1/me').json()
         pprint.pprint(user)
 
-reddit = Reddit(creds.key, creds.secret, creds.username, creds.password, 'https://metaether.net')
-reddit.updateToken()
-reddit.testAccess()
-print reddit.access_token
-reddit.updateToken()
-posts, nav = reddit.getListing('all')
-print len(posts), nav
-#post, comments = reddit.getPost('1y28lk')
+if __name__ == '__main__':
+    reddit = Reddit(creds.key, creds.secret, creds.username, creds.password, creds.redirect_uri)
+    reddit.updateToken()
+    reddit.testAccess()
+    print reddit.access_token
+    reddit.testAccess()
+    print reddit.access_token
+    reddit.updateToken()
+    posts, nav = reddit.getListing('all')
+    print len(posts), nav
+    #post, comments = reddit.getPost('1y28lk')
 
